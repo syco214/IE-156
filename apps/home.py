@@ -5,7 +5,6 @@ import dash_bootstrap_components as dbc
 import dash_table
 from dash.exceptions import PreventUpdate
 import pandas as pd
-
 from app import app
 
 layout = html.Div(

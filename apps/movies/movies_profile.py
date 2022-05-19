@@ -35,6 +35,34 @@ layout = html.Div(
                     ),
                     dbc.FormGroup(
                         [
+                            dbc.Label("Year Produced", width=1),
+                            dbc.Col(
+                                dbc.Input(
+                                    type='number',
+                                    id='movieprofile_year',
+                                    placeholder='Year'
+                                ),
+                                width=5
+                            )
+                        ],
+                        row=True
+                    ),
+                    dbc.FormGroup(
+                        [
+                            dbc.Label("Movie Description", width=1),
+                            dbc.Col(
+                                dbc.Input(
+                                    type='text',
+                                    id='movieprofile_description',
+                                    placeholder='Description'
+                                ),
+                                width=5
+                            )
+                        ],
+                        row=True
+                    ),                                     
+                    dbc.FormGroup(
+                        [
                             dbc.Label("Genre", width=1),
                             dbc.Col(
                                 dcc.Dropdown(
@@ -48,18 +76,17 @@ layout = html.Div(
                     ),
                     dbc.FormGroup(
                         [
-                            dbc.Label("Release Date", width=1),
+                            dbc.Label("Producer", width=1),
                             dbc.Col(
-                                dcc.DatePickerSingle(
-                                    id='movieprofile_releasedate',
-                                    placeholder='Release Date',
-                                    month_format='MMM Do, YY',
+                                dcc.Dropdown(
+                                    id='movieprofile_producer',
+                                    placeholder='Producer'
                                 ),
                                 width=5
                             )
                         ],
                         row=True
-                    ),
+                    ),                    
                 ]
             ),
             html.Div(
@@ -115,7 +142,7 @@ layout = html.Div(
 )
 @app.callback(
     [
-        Output('movieprofile_genre', 'options'), 
+        Output('movieprofile_genre', 'options'),          
         Output('movieprofile_toload', 'data'),
         Output('movieprofile_remove_div', 'style')
     ],
@@ -150,6 +177,34 @@ def movieprofile_populategenres(pathname, search):
 
 @app.callback(
     [
+        Output('movieprofile_producer', 'options'),          
+    ],
+    [
+        Input('url', 'pathname')
+    ],
+    [
+        State('url', 'search')
+    ]
+)
+def movieprofile_populateproducers(pathname, search):
+    if pathname == '/movies/movies_profile':
+        sql = """ 
+        SELECT producer_name as label, producer_id as value 
+        FROM producers 
+        WHERE producer_delete_ind = False 
+        """
+        values = []
+        cols = ['label', 'value']
+        df = db.querydatafromdatabase(sql, values, cols)
+        producer_options = df.to_dict('records')
+        parsed = urlparse(search) 
+        create_mode = parse_qs(parsed.query)['mode'][0] 
+        return [producer_options]
+    else:
+        raise PreventUpdate
+
+@app.callback(
+    [
         Output('movieprofile_alert', 'color'),
         Output('movieprofile_alert', 'children'),
         Output('movieprofile_alert', 'is_open'),
@@ -160,14 +215,16 @@ def movieprofile_populategenres(pathname, search):
     ],
     [
         State('movieprofile_title', 'value'),
+        State('movieprofile_year', 'value'),
+        State('movieprofile_description', 'value'),        
         State('movieprofile_genre', 'value'),
-        State('movieprofile_releasedate', 'date'),
+        State('movieprofile_producer', 'value'),
         State('url', 'search'),
         State('movieprofile_removerecord', 'value')
     ]
 )
 
-def movieprofile_saveprofile(submitbtn, title, genre, releasedate, search, remove_checked):
+def movieprofile_saveprofile(submitbtn, title, year, description, genre, producer, search, remove_checked):
     ctx = dash.callback_context
     if ctx.triggered: 
         eventid = ctx.triggered[0]['prop_id'].split('.')[0]
@@ -181,41 +238,50 @@ def movieprofile_saveprofile(submitbtn, title, genre, releasedate, search, remov
                 alert_open = True
                 alert_color = 'danger'
                 alert_text = 'Check your inputs. Please supply the movie title.'
+            elif not year: 
+                alert_open = True
+                alert_color = 'danger'
+                alert_text = 'Check your inputs. Please supply the year movie was produced.'
+            elif not description: 
+                alert_open = True
+                alert_color = 'danger'
+                alert_text = 'Check your inputs. Please supply the movie description.'
             elif not genre: 
                 alert_open = True
                 alert_color = 'danger'
-                alert_text = 'Check your inputs. Please supply the movie genre.'
-            elif not releasedate: 
+                alert_text = 'Check your inputs. Please supply the movie genre.'                
+            elif not producer: 
                 alert_open = True
                 alert_color = 'danger'
-                alert_text = 'Check your inputs. Please supply the movie release date.'
+                alert_text = 'Check your inputs. Please the movie producer.'                                
             else:
                 parsed = urlparse(search)
                 create_mode = parse_qs(parsed.query)['mode'][0]
                 if create_mode == 'add':
                     sql = '''
-                        INSERT INTO movies (movie_name, genre_id, 
-                            movie_release_date, movie_delete_ind)
-                        VALUES (%s, %s, %s, %s)                
+                        INSERT INTO movies (movie_title, movie_produced_year,
+                            movie_description, genre_id, producer_id, movie_delete_ind)
+                        VALUES (%s, %s, %s, %s, %s, %s)               
                     '''
-                    values = [title, genre, releasedate, False]
+                    values = [title, year, description, genre, producer, False]
 
                     db.modifydatabase(sql, values)
-                    raise PreventUpdate
                 elif create_mode == 'edit':
                     movieid = int(parse_qs(parsed.query)['movieid'][0])
                     sql = ''' 
                         UPDATE movies 
                         SET 
-                            movie_name = %s, 
-                            genre_id = %s, 
-                            movie_release_date = %s,
+                            movie_title = %s, 
+                            movie_produced_year = %s,
+                            movie_description = %s,
+                            genre_id = %s,
+                            producer_id = %s,
                             movie_delete_ind = %s 
                         WHERE 
                             movie_id = %s
                     '''
                     delete_ind = bool(remove_checked)
-                    values = [title, genre, releasedate, delete_ind, movieid]
+                    values = [title, year, description, genre, producer, delete_ind, movieid]
                     db.modifydatabase(sql, values)
                 else:
                     raise PreventUpdate

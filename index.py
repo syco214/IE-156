@@ -11,6 +11,10 @@ from app import app
 from apps import commonmodules as cm
 from apps import home
 from apps.movies import movies_home, movies_profile
+from apps.data import upload
+from apps.actors import actors_home, actors_profile, add_actor
+from apps.country import country_home, country_profile
+from apps.producers import producers_home, add_producer
 
 CONTENT_STYLE = {
     "margin-left": "1em",
@@ -49,6 +53,22 @@ def displaypage(pathname):
                 returnlayout = movies_home.layout
             elif pathname == '/movies/movies_profile':
                 returnlayout = movies_profile.layout
+            elif pathname == '/actors/actors_home':
+                returnlayout = actors_home.layout  
+            elif pathname == '/actors/actors_profile':
+                returnlayout = actors_profile.layout   
+            elif pathname == '/producers/producers_home':
+                returnlayout = producers_home.layout
+            elif pathname == '/producers/add_producers':
+                returnlayout = add_producer.layout
+            elif pathname == '/actors/add_actors':
+                returnlayout = add_actor.layout       
+            elif pathname == '/data':
+                returnlayout = upload.layout
+            elif pathname == '/country/country_home':
+                returnlayout = country_home.layout
+            elif pathname == '/country/country_profile':
+                returnlayout = country_profile.layout
             else:
                 returnlayout = 'error404'
         else: 
@@ -60,4 +80,4 @@ def displaypage(pathname):
 
 if __name__ == '__main__':
     webbrowser.open('http://127.0.0.1:8050/', new=0, autoraise=True)
-    app.run_server(debug=False)
+    app.run_server(debug=True)
